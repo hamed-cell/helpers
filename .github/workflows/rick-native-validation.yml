@@ -34,10 +34,9 @@ jobs:
             dev_scripts_helpers/llms/test/test_llm_transform.py
       - name: Verify package import
         run: python -c "import helpers.hdbg as hdbg; print(hdbg.__file__)"
-      - name: Run native focused tests
+      - name: Run focused llm_transform test file
         run: |
           python -m pytest -q \
-            dev_scripts_helpers/llms/test/test_llm_transform.py \
-            -k 'native'
+            dev_scripts_helpers/llms/test/test_llm_transform.py
       - name: Diff check
         run: git diff --check origin/master...origin/bounty/llm-transform-native-fast-path --
