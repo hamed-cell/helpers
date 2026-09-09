@@ -9,10 +9,14 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: helpers_root
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          path: helpers_root
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -31,7 +35,6 @@ jobs:
       - name: Run native focused tests
         run: |
           python -m pytest -q \
-            --confcutdir=dev_scripts_helpers/llms/test \
             dev_scripts_helpers/llms/test/test_llm_transform.py \
             -k 'native'
       - name: Diff check
