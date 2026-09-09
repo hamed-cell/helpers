@@ -61,16 +61,10 @@ class Test_llm_transform1(hunitest.TestCase):
         verify the output.
         """
         script, in_file_name, out_file_name = self.setup_test(txt_id=0)
-        # Run test.
-        # We use this prompt since it doesn't call OpenAI, but it exercises all
-        # the code.
         prompt_tag = "md_rewrite"
         cmd = f"{script} -i {in_file_name} -o {out_file_name} -p {prompt_tag}"
         hsystem.system(cmd)
-        # Check.
         self.assertTrue(os.path.exists(out_file_name))
-        # TODO(gp): We should be able to check the output once we have CmampTask10710
-        # fixed and we can run dind.
         if False:
             actual = hio.from_file(out_file_name)
             expected = r"""
@@ -89,11 +83,9 @@ class Test_llm_transform1(hunitest.TestCase):
         output.
         """
         script, in_file_name, out_file_name = self.setup_test(txt_id=1)
-        # Run test.
         prompt_tag = "test"
         cmd = f"{script} -i {in_file_name} -o {out_file_name} -p {prompt_tag}"
         hsystem.system(cmd)
-        # Check.
         self.assertTrue(os.path.exists(out_file_name))
         actual = hio.from_file(out_file_name)
         expected = r"""
@@ -107,12 +99,43 @@ class Test_llm_transform1(hunitest.TestCase):
         Run the `llm_transform.py` script with the prompt `test` through stdin.
         """
         script, in_file_name, out_file_name = self.setup_test(txt_id=1)
-        # Run test.
         prompt_tag = "test"
         txt = "hello"
         cmd = f"echo {txt} | {script} -i - -o {out_file_name} -p {prompt_tag}"
         hsystem.system(cmd)
-        # Check.
+        self.assertTrue(os.path.exists(out_file_name))
+        actual = hio.from_file(out_file_name)
+        expected = r"""
+        1ad0d344ac10cac079e4eed01074c5e6ca29da2f91ce99bfaea890479aace045
+        """
+        self.assert_equal(actual, expected, dedent=True)
+
+    def test_test_native1(self) -> None:
+        """Run the deterministic transform without starting Docker."""
+        script, in_file_name, out_file_name = self.setup_test(txt_id=1)
+        prompt_tag = "test"
+        cmd = (
+            f"{script} -i {in_file_name} -o {out_file_name} "
+            f"-p {prompt_tag} --native"
+        )
+        hsystem.system(cmd)
+        self.assertTrue(os.path.exists(out_file_name))
+        actual = hio.from_file(out_file_name)
+        expected = r"""
+        1ad0d344ac10cac079e4eed01074c5e6ca29da2f91ce99bfaea890479aace045
+        """
+        self.assert_equal(actual, expected, dedent=True)
+
+    def test_test_native_stdin1(self) -> None:
+        """Run the deterministic native transform with stdin input."""
+        script, in_file_name, out_file_name = self.setup_test(txt_id=1)
+        prompt_tag = "test"
+        txt = "hello"
+        cmd = (
+            f"echo {txt} | {script} -i - -o {out_file_name} "
+            f"-p {prompt_tag} --native"
+        )
+        hsystem.system(cmd)
         self.assertTrue(os.path.exists(out_file_name))
         actual = hio.from_file(out_file_name)
         expected = r"""
@@ -128,19 +151,14 @@ class Test_llm_transform1(hunitest.TestCase):
         the output.
         """
         script, in_file_name, out_file_name = self.setup_test(txt_id=0)
-        # Run test.
         transforms = dshlllpr.get_transforms()
         for prompt_tag in transforms:
-            # Remove the output file.
             cmd = "rm -f " + out_file_name
             hsystem.system(cmd)
             hdbg.dassert(not os.path.exists(out_file_name))
-            # Run the test.
             cmd = f"{script} -i {in_file_name} -o {out_file_name} -p {prompt_tag}"
             hsystem.system(cmd)
-            # Check.
             hdbg.dassert_file_exists(out_file_name)
-            # Print.
             res = hio.from_file(out_file_name)
             _LOG.info("\n" + hprint.frame(prompt_tag))
             _LOG.info("\n" + res)
