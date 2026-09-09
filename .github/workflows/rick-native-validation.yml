@@ -12,6 +12,8 @@ jobs:
     defaults:
       run:
         working-directory: helpers_root
+    env:
+      PYTHONPATH: ${{ github.workspace }}/helpers_root
     steps:
       - uses: actions/checkout@v4
         with:
@@ -38,4 +40,4 @@ jobs:
             dev_scripts_helpers/llms/test/test_llm_transform.py \
             -k 'native'
       - name: Diff check
-        run: git diff --check origin/master...HEAD --
+        run: git diff --check origin/master...origin/bounty/llm-transform-native-fast-path --
