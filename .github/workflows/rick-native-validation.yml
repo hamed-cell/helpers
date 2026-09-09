@@ -1,0 +1,35 @@
+name: Rick native llm_transform validation
+
+on:
+  push:
+    branches:
+      - ci/validate-native-fast-path
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install focused test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest PyYAML requests pandas tqdm openai boto3
+      - name: Compile changed Python files
+        run: |
+          python -m py_compile \
+            dev_scripts_helpers/llms/llm_transform.py \
+            dev_scripts_helpers/llms/dockerized_llm_transform.py \
+            dev_scripts_helpers/llms/test/test_llm_transform.py
+      - name: Run native focused tests
+        env:
+          PYTHONPATH: .
+        run: |
+          python -m pytest -q \
+            dev_scripts_helpers/llms/test/test_llm_transform.py \
+            -k 'native'
+      - name: Diff check
+        run: git diff --check HEAD^ --
