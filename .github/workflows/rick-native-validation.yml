@@ -38,5 +38,51 @@ jobs:
         run: |
           python -m pytest -q \
             dev_scripts_helpers/llms/test/test_llm_transform.py
+      - name: Benchmark warm Docker versus native
+        env:
+          OPENAI_API_KEY: sk-mock-helpers-llm-transform-benchmark
+        run: |
+          python - <<'PY'
+          import os
+          import statistics
+          import subprocess
+          import time
+
+          script = "dev_scripts_helpers/llms/llm_transform.py"
+          input_path = "tmp.rick_llm_transform_input.txt"
+          output_path = "tmp.rick_llm_transform_output.txt"
+          with open(input_path, "w", encoding="utf-8") as out:
+              out.write("hello\n")
+
+          def run(native: bool) -> float:
+              cmd = [script]
+              if native:
+                  cmd.append("--native")
+              cmd += ["-i", input_path, "-o", output_path, "-p", "test"]
+              start = time.perf_counter()
+              subprocess.run(
+                  cmd,
+                  check=True,
+                  stdout=subprocess.DEVNULL,
+                  stderr=subprocess.DEVNULL,
+                  env=os.environ.copy(),
+              )
+              return time.perf_counter() - start
+
+          # The preceding regression suite has already built the Docker image.
+          # Warm both paths once before collecting comparable repeated timings.
+          run(False)
+          run(True)
+          docker = [run(False) for _ in range(7)]
+          native = [run(True) for _ in range(7)]
+          docker_median = statistics.median(docker)
+          native_median = statistics.median(native)
+          improvement = (1.0 - native_median / docker_median) * 100.0
+          print(f"warm_docker_seconds={docker}")
+          print(f"native_seconds={native}")
+          print(f"warm_docker_median={docker_median:.4f}s")
+          print(f"native_median={native_median:.4f}s")
+          print(f"median_latency_reduction={improvement:.1f}%")
+          PY
       - name: Diff check
         run: git diff --check origin/master...origin/bounty/llm-transform-native-fast-path --
