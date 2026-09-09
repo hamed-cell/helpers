@@ -35,6 +35,7 @@ import logging
 import os
 from typing import List, Optional, Tuple, cast
 
+import dev_scripts_helpers.llms.dockerized_llm_transform as dshlldlt
 import dev_scripts_helpers.llms.llm_prompts as dshlllpr
 import dev_scripts_helpers.llms.llm_utils as dshlllut
 import helpers.hdbg as hdbg
@@ -70,6 +71,15 @@ def _parse() -> argparse.ArgumentParser:
     )
     hllmcli.add_llm_prompt_arg(parser, is_required=False)
     hdocker.add_dockerized_script_arg(parser)
+    parser.add_argument(
+        "--native",
+        action="store_true",
+        help=(
+            "Run the LLM transform in the current Python environment instead "
+            "of starting Docker. This is faster for repeated invocations but "
+            "does not provide Docker dependency isolation."
+        ),
+    )
     parser.add_argument(
         "-l",
         "--list",
@@ -329,26 +339,26 @@ def _main(parser: argparse.ArgumentParser) -> None:
         cmd_line_opts.append("--fast_model")
     if args.debug:
         cmd_line_opts.append("-d")
-    # cmd_line_opts = []
-    # for arg in vars(args):
-    #     if arg not in ["input", "output"]:
-    #         value = getattr(args, arg)
-    #         if isinstance(value, bool):
-    #             if value:
-    #                 cmd_line_opts.append(f"--{arg.replace('_', '-')}")
-    #         else:
-    #             cmd_line_opts.append(f"--{arg.replace('_', '-')} {value}")
     # For stdin/stdout, suppress the output of the container.
     suppress_output = in_file_name == "-" or out_file_name == "-"
-    _run_dockerized_llm_transform(
-        tmp_in_file_name,
-        cmd_line_opts,
-        tmp_out_file_name,
-        mode="system",
-        force_rebuild=args.dockerized_force_rebuild,
-        use_sudo=args.dockerized_use_sudo,
-        suppress_output=suppress_output,
-    )
+    if args.native:
+        dshlldlt.run_transform(
+            tmp_in_file_name,
+            tmp_out_file_name,
+            args.prompt,
+            fast_model=args.fast_model,
+            debug=args.debug,
+        )
+    else:
+        _run_dockerized_llm_transform(
+            tmp_in_file_name,
+            cmd_line_opts,
+            tmp_out_file_name,
+            mode="system",
+            force_rebuild=args.dockerized_force_rebuild,
+            use_sudo=args.dockerized_use_sudo,
+            suppress_output=suppress_output,
+        )
     # Run post-transforms outside the container.
     if not args.skip_post_transforms:
         out_txt = dshlllut.run_post_transforms(
