@@ -82,6 +82,42 @@ class Test_llm_transform1(hunitest.TestCase):
             """
             self.assert_equal(actual, expected, dedent=True)
 
+    def test_native1(self) -> None:
+        """
+        Run the deterministic test prompt through the native fast path.
+        """
+        script, in_file_name, out_file_name = self.setup_test(txt_id=1)
+        prompt_tag = "test"
+        cmd = (
+            f"{script} --native -i {in_file_name} -o {out_file_name} "
+            f"-p {prompt_tag}"
+        )
+        hsystem.system(cmd)
+        self.assertTrue(os.path.exists(out_file_name))
+        actual = hio.from_file(out_file_name)
+        expected = r"""
+        1ad0d344ac10cac079e4eed01074c5e6ca29da2f91ce99bfaea890479aace045
+        """
+        self.assert_equal(actual, expected, dedent=True)
+
+    def test_native_stdin1(self) -> None:
+        """
+        Run stdin input through the native fast path.
+        """
+        script, _, out_file_name = self.setup_test(txt_id=1)
+        prompt_tag = "test"
+        cmd = (
+            f"echo hello | {script} --native -i - -o {out_file_name} "
+            f"-p {prompt_tag}"
+        )
+        hsystem.system(cmd)
+        self.assertTrue(os.path.exists(out_file_name))
+        actual = hio.from_file(out_file_name)
+        expected = r"""
+        1ad0d344ac10cac079e4eed01074c5e6ca29da2f91ce99bfaea890479aace045
+        """
+        self.assert_equal(actual, expected, dedent=True)
+
     @pytest.mark.slow
     def test_test1(self) -> None:
         """
