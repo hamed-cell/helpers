@@ -27,8 +27,11 @@ This directory has no subdirectories.
 
 - Applies predefined or custom LLM transformations to code files, particularly
   useful for code review and refactoring.
-- Executes transformations in Docker containers to isolate dependencies and
-  environment requirements.
+- Executes transformations in Docker containers by default to isolate
+  dependencies and environment requirements.
+- Supports an explicit `--native` mode that runs the same transform in the
+  current Python process, avoiding Docker startup when all required dependencies
+  are already installed locally.
 - Can generate cfiles (lists of code issues) for further processing with
   `llm_apply_cfile.py`.
 
@@ -38,6 +41,14 @@ This directory has no subdirectories.
   ```bash
   > llm_transform.py -i input.txt -o output.txt -p uppercase
   ```
+
+- Native fast path for repeated invocations:
+  ```bash
+  > llm_transform.py -i input.txt -o output.txt -p uppercase --native
+  ```
+  `--native` trades Docker dependency isolation for lower startup latency. The
+  caller environment must provide the dependencies required by the selected
+  transform.
 
 - List available transformations:
   ```bash
@@ -174,9 +185,10 @@ This directory has no subdirectories.
 
 ### What They Do
 
-- `dockerized_llm_transform.py` is an internal tool.
-- It is called automatically by its non-dockerized counterpart to execute
-  transformations within Docker containers.
-- It ensures all dependencies (e.g., OpenAI API libraries) are available and
-  isolates the execution environment.
+- `dockerized_llm_transform.py` is an internal tool and also exposes the shared
+  transform function used by `llm_transform.py --native`.
+- It is called automatically by its non-dockerized counterpart for default
+  Docker execution.
+- Docker execution ensures all dependencies (e.g., OpenAI API libraries) are
+  available and isolates the execution environment.
 - Users typically do not call this directly - use the main tool instead.
