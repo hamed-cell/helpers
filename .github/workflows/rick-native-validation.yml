@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -26,10 +28,10 @@ jobs:
             dev_scripts_helpers/llms/test/test_llm_transform.py
       - name: Run native focused tests
         env:
-          PYTHONPATH: .
+          PYTHONPATH: ..
         run: |
           python -m pytest -q \
             dev_scripts_helpers/llms/test/test_llm_transform.py \
             -k 'native'
       - name: Diff check
-        run: git diff --check HEAD^ --
+        run: git diff --check origin/master...HEAD --
