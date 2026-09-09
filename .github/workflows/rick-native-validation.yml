@@ -26,11 +26,12 @@ jobs:
             dev_scripts_helpers/llms/llm_transform.py \
             dev_scripts_helpers/llms/dockerized_llm_transform.py \
             dev_scripts_helpers/llms/test/test_llm_transform.py
+      - name: Verify package import
+        run: python -c "import helpers.hdbg as hdbg; print(hdbg.__file__)"
       - name: Run native focused tests
-        env:
-          PYTHONPATH: ..
         run: |
           python -m pytest -q \
+            --confcutdir=dev_scripts_helpers/llms/test \
             dev_scripts_helpers/llms/test/test_llm_transform.py \
             -k 'native'
       - name: Diff check
