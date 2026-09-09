@@ -28,15 +28,44 @@ This directory has no subdirectories.
 - Applies predefined or custom LLM transformations to code files, particularly
   useful for code review and refactoring.
 - Executes transformations in Docker containers to isolate dependencies and
-  environment requirements.
+  environment requirements by default.
+- Supports an explicit `--native` fast path for repeated runs when the required
+  Python dependencies are already installed on the host. Native mode skips
+  Docker image preparation and container/process startup while preserving the
+  same transform and post-transform flow.
 - Can generate cfiles (lists of code issues) for further processing with
   `llm_apply_cfile.py`.
+
+### Native Fast Path
+
+Docker remains the default because it provides dependency and environment
+isolation. Use `--native` only when running in a trusted, already-provisioned
+Python environment and lower repeated-run latency is more important than
+container isolation.
+
+The native path reuses the same core implementation as
+`dockerized_llm_transform.py`; it does not change prompt selection, model
+selection, input/output adaptation, or post-transforms.
+
+For deterministic local comparisons, use the `test` prompt. It hashes the input
+locally and does not make a live LLM request, so model/network latency does not
+hide process and container startup overhead.
 
 ### Examples
 
 - Basic transformation:
   ```bash
   > llm_transform.py -i input.txt -o output.txt -p uppercase
+  ```
+
+- Run a transform through the opt-in native fast path:
+  ```bash
+  > llm_transform.py --native -i input.txt -o output.txt -p my_transform
+  ```
+
+- Compare repeated startup overhead without a live LLM call:
+  ```bash
+  > llm_transform.py --native -i input.txt -o output.txt -p test
   ```
 
 - List available transformations:

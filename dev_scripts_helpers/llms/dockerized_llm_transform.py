@@ -33,20 +33,23 @@ def _parse() -> argparse.ArgumentParser:
     return parser
 
 
-def _main(parser: argparse.ArgumentParser) -> None:
-    args = parser.parse_args()
-    hseinout.init_logger_for_input_output_transform(args)
-    # Parse files from command line.
-    in_file_name, out_file_name = hseinout.parse_input_output_args(args)
-    # Read file.
+def run_llm_transform(
+    in_file_name: str,
+    out_file_name: str,
+    prompt_tag: str,
+    *,
+    fast_model: bool = False,
+    debug: bool = False,
+) -> None:
+    """
+    Transform `in_file_name` and write the result to `out_file_name`.
+
+    This function contains the execution logic shared by the Dockerized CLI and
+    the opt-in native path exposed by `llm_transform.py`.
+    """
     txt = hseinout.from_file(in_file_name)
-    # Transform with LLM.
     txt_tmp = "\n".join(txt)
-    prompt_tag = args.prompt
-    if args.fast_model:
-        model = "gpt-4o-mini"
-    else:
-        model = "gpt-4o"
+    model = "gpt-4o-mini" if fast_model else "gpt-4o"
     txt_tmp = dshlllpr.run_prompt(
         prompt_tag,
         txt_tmp,
@@ -54,15 +57,29 @@ def _main(parser: argparse.ArgumentParser) -> None:
         in_file_name=in_file_name,
         out_file_name=out_file_name,
     )
-    if txt_tmp is not None:
-        # Write file, if needed.
-        res = []
-        if args.debug:
-            res.append("# Before:")
-            res.extend(txt)
-            res.append("# After:")
-        res.extend(txt_tmp.split("\n"))
-        hseinout.to_file(res, out_file_name)
+    if txt_tmp is None:
+        return
+    res = []
+    if debug:
+        res.append("# Before:")
+        res.extend(txt)
+        res.append("# After:")
+    res.extend(txt_tmp.split("\n"))
+    hseinout.to_file(res, out_file_name)
+
+
+def _main(parser: argparse.ArgumentParser) -> None:
+    args = parser.parse_args()
+    hseinout.init_logger_for_input_output_transform(args)
+    # Parse files from command line.
+    in_file_name, out_file_name = hseinout.parse_input_output_args(args)
+    run_llm_transform(
+        in_file_name,
+        out_file_name,
+        args.prompt,
+        fast_model=args.fast_model,
+        debug=args.debug,
+    )
 
 
 if __name__ == "__main__":
